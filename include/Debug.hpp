@@ -1,10 +1,10 @@
-/* 
-	Header only for debug/loging calls
+/*
+  Header only for debug/loging calls
 */
 #pragma once
 
-#ifndef SRC_DEBUG_H_
-#define SRC_DEBUG_H_
+#ifndef TILER_DEBUG_H_
+#define TILER_DEBUG_H_
 
 #include <iostream>
 #include <utility>
@@ -22,4 +22,4 @@ std::ostream& operator,(std::ostream& out, std::ostream&(*f)(std::ostream&)) {
   return out;
 }
 
-#endif // SRC_DEBUG_H_
+#endif // TILER_DEBUG_H_
