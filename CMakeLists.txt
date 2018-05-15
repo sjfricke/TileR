@@ -4,6 +4,7 @@ set(NAME TileR)
 
 project(${NAME})
 
+include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 
 # Set preprocessor defines
@@ -14,7 +15,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch-enum")
 endif()
 
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 add_definitions(-std=c++11)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
