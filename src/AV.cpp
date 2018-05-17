@@ -43,7 +43,6 @@ void AV::printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* 
   */
 }
 
-
 AV::AV(std::string fileName)
   : mpFormatContext(NULL)
 {
@@ -53,7 +52,6 @@ AV::AV(std::string fileName)
   if (!mpFrame) {
     FATAL("Error allocating the frame", -1);
   }
-
 
   if (avformat_open_input(&mpFormatContext, fileName.c_str(), NULL, NULL) != 0) {
     av_free(mpFrame);
@@ -75,68 +73,102 @@ AV::AV(std::string fileName)
     FATAL("Could not find any audio stream in the file", -1);
   }
 
+  if(!cdc){
+    FATAL("Codec couldn't be opened",-1);
+  }
+
+  LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
+  //LOG("STRING ", );
+  std::cout << "STRING VERSION: " << av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type) << std::endl;
   mpAudioStream = mpFormatContext->streams[streamIndex];
   mpCodecContext = mpAudioStream->codec;
   mpCodecContext->codec = cdc;
 
-  if (avcodec_open2(mpCodecContext, mpCodecContext->codec, NULL) != 0) {
+
+  if (avcodec_open2(mpCodecContext, cdc, NULL) < 0) {
     av_free(mpFrame);
     avformat_close_input(&mpFormatContext);
     FATAL("Couldn't open the context with the decoder", -1);
   }
+
+  mSamplingRate = mpCodecContext->sample_rate;
+  //mNumSamples = ReadPackets(false);
+  mNumSamples = 0;
+
 }
 
 void AV::PrintAVInfo()
 {
   LOG("This stream has ", mpCodecContext->channels, " channels and a sample rate of ", mpCodecContext->sample_rate, "Hz");
   LOG("The data is in the format ", av_get_sample_fmt_name(mpCodecContext->sample_fmt));
+  std::cout << "type again: " << av_get_media_type_string(mpCodecContext->codec_type) << std::endl;
+  LOG("There are this many samples ", mNumSamples);
 }
 
-void AV::ReadPackets(bool verbose)
+int AV::ReadPackets(bool verbose)
 {
 
   AVPacket readingPacket;
+  AVPacket decodingPacket;
   av_init_packet(&readingPacket);
+  av_init_packet(&decodingPacket);
+  int numSamples;
+  FILE * outfile = fopen("./data/processed_samples.txt", "wb");
 
   // Read the packets in a loop
   while (av_read_frame(mpFormatContext, &readingPacket) == 0) {
     if (readingPacket.stream_index == mpAudioStream->index) {
-      AVPacket decodingPacket = readingPacket;
+      
+      // readingPacket;
+      av_packet_ref(&decodingPacket, &readingPacket);
 
       if (verbose) {
-	LOG(decodingPacket.size, " decode packets\n");
+	      LOG(decodingPacket.size, " decode packets\n");
       }
 
+      
+      // Get the data size per element in the stream
+      int dataSize = av_get_bytes_per_sample(mpCodecContext->sample_fmt);
+     
       // Audio packets can have multiple audio frames in a single packet
       while (decodingPacket.size > 0) {
-	// Try to decode the packet into a frame
-	// Some frames rely on multiple packets, so we have to make sure the frame is finished before
-	// we can use it
-	int gotFrame = 0;
-	int result = avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &decodingPacket);
+        //std::cout << "DECODING_SIZE " << decodingPacket.size << std::endl;
+	      // Try to decode the packet into a frame
+	      // Some frames rely on multiple packets, so we have to make sure the frame is finished before
+	      // we can use it
+	      int gotFrame = 0;
+	      int result = avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &decodingPacket);
+	      if (result >= 0 && gotFrame) {
+	        decodingPacket.size -= result;
+	        decodingPacket.data += result;
+          numSamples += mpFrame->nb_samples;
+          // Write float32 data for the channel
+          for(int jj = 0; jj < mpFrame->nb_samples; jj++){
+            fwrite(mpFrame->data[0]+jj*dataSize, dataSize, 1, outfile);
+          }
 
-	if (result >= 0 && gotFrame) {
-	  decodingPacket.size -= result;
-	  decodingPacket.data += result;
-
-	  // We now have a fully decoded audio frame
-	  if (verbose) {
-	    printAudioFrameInfo(mpCodecContext, mpFrame);
-	  }
-	} else {
-	  decodingPacket.size = 0;
-	  decodingPacket.data = nullptr;
-	}
+	        // We now have a fully decoded audio frame
+	        if (verbose) {
+	          printAudioFrameInfo(mpCodecContext, mpFrame);
+	        }
+	        } else {
+	          decodingPacket.size = 0;
+	          decodingPacket.data = nullptr;
+	        }
       }
     }
 
+
     // You *must* call av_free_packet() after each call to av_read_frame() or else you'll leak memory
-    av_free_packet(&readingPacket);
+    //av_free_packet(&readingPacket); DEPRECATED
+    av_packet_unref(&readingPacket);
+    av_packet_unref(&decodingPacket);
+   
   }
 
   // Some codecs will cause frames to be buffered up in the decoding process. If the CODEC_CAP_DELAY flag
   // is set, there can be buffered up frames that need to be flushed, so we'll do that
-  if (mpCodecContext->codec->capabilities & CODEC_CAP_DELAY) {
+  if (mpCodecContext->codec->capabilities /*& CODEC_CAP_DELAY*/) {
     av_init_packet(&readingPacket);
     // Decode all the remaining frames in the buffer, until the end is reached
     int gotFrame = 0;
@@ -147,6 +179,8 @@ void AV::ReadPackets(bool verbose)
       }
     }
   }
+
+  return numSamples;
 }
 
 AV::~AV() {

@@ -25,7 +25,8 @@ public:
   ~AV();
 
   void PrintAVInfo(void);
-  void ReadPackets(bool verbose = false);
+  // Returns the number of samples for each channel.
+  int ReadPackets(bool verbose = false);
 private:
   void printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* frame);
 
@@ -33,6 +34,8 @@ private:
   AVFormatContext* mpFormatContext;
   AVStream* mpAudioStream;
   AVCodecContext* mpCodecContext;
+  int mSamplingRate;
+  int mNumSamples;
 };
 
 #endif // TILER_AV_H_

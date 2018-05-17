@@ -31,10 +31,10 @@ int main(int argc, char *argv[]) {
     switch(input) {
     case 1: // add AV Source
       {
-	std::string fileName;
+	std::string fileName {"./data/video0.mp4"};
 	while (1) {
 	  std::cout << "Enter AV Source path: ";
-	  std::cin >> fileName;
+	  //std::cin >> fileName;
 	  if ( access( fileName.c_str(), F_OK ) == -1 ) {
 	    LOG("... file is fake news, try again");
 	  } else {
@@ -51,7 +51,9 @@ int main(int argc, char *argv[]) {
       break;
     case 4: // AV info
       for (auto &source : sources) {
-	source->PrintAVInfo();
+        source->PrintAVInfo();
+        std::cout << source->ReadPackets(false) << std::endl;
+        //std::cout << source->ReadPackets(false) << std::endl;
       }
       break;
     case 5: // Song info
