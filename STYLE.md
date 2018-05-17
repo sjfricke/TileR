@@ -31,3 +31,25 @@ All **lowerCamelCase**
 - Static
 	- start with **s**
 	- `sValue`
+
+### Brackets
+
+> Using Linux kernel methods
+
+- Function new line
+  - ```
+	void myFunction()
+	{
+		// ...
+	}
+	```
+- If and Switch statements same line
+  - ```
+	if (a > 0) {
+		// ...
+	} else if (b > 0) {
+		// ...
+	} else {
+		// ...
+	}
+	```

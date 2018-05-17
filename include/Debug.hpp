@@ -17,9 +17,15 @@ std::ostream& operator,(std::ostream& out, const T& t) {
 }
 
 //overloaded version to handle all those special std::endl and others...
-std::ostream& operator,(std::ostream& out, std::ostream&(*f)(std::ostream&)) {
+static std::ostream& operator,(std::ostream& out, std::ostream&(*f)(std::ostream&)) {
   out << f;
   return out;
 }
+
+#define FATAL(err, code)                                 \
+{                                                        \
+  LOG("\n===== FATEL ERROR: ", code, " =====\n", err);   \
+  exit(code);                                            \
+}                                                        \
 
 #endif // TILER_DEBUG_H_

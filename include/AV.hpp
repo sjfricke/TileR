@@ -24,10 +24,15 @@ public:
   AV(std::string fileName);
   ~AV();
 
+  void PrintAVInfo(void);
+  void ReadPackets(bool verbose = false);
 private:
   void printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* frame);
 
   AVFrame* mpFrame;
+  AVFormatContext* mpFormatContext;
+  AVStream* mpAudioStream;
+  AVCodecContext* mpCodecContext;
 };
 
 #endif // TILER_AV_H_
