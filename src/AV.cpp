@@ -92,7 +92,6 @@ AV::AV(std::string fileName)
   }
 
   mSamplingRate = mpCodecContext->sample_rate;
-  //mNumSamples = ReadPackets(false);
   mNumSamples = 0;
 
 }
@@ -105,7 +104,7 @@ void AV::PrintAVInfo()
   LOG("There are this many samples ", mNumSamples);
 }
 
-int AV::ReadPackets(bool verbose)
+std::vector<float> AV::ReadPackets(bool verbose)
 {
 
   AVPacket readingPacket;
@@ -113,6 +112,7 @@ int AV::ReadPackets(bool verbose)
   av_init_packet(&readingPacket);
   av_init_packet(&decodingPacket);
   int numSamples;
+  std::vector<float> allSamples;
   FILE * outfile = fopen("./data/processed_samples.txt", "wb");
 
   // Read the packets in a loop
@@ -145,6 +145,8 @@ int AV::ReadPackets(bool verbose)
           // Write float32 data for the channel
           for(int jj = 0; jj < mpFrame->nb_samples; jj++){
             fwrite(mpFrame->data[0]+jj*dataSize, dataSize, 1, outfile);
+            float sample = *((float *)(mpFrame->data[0]+jj*dataSize));
+            allSamples.push_back(sample);
           }
 
 	        // We now have a fully decoded audio frame
@@ -179,8 +181,8 @@ int AV::ReadPackets(bool verbose)
       }
     }
   }
-
-  return numSamples;
+  mNumSamples = allSamples.size();
+  return allSamples;
 }
 
 AV::~AV() {

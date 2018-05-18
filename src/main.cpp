@@ -1,5 +1,7 @@
+
 #include "Debug.hpp"
 #include "AV.hpp"
+#include "SampleBlock.hpp"
 #include <unistd.h> // access(2)
 #include <vector>
 
@@ -51,9 +53,11 @@ int main(int argc, char *argv[]) {
       break;
     case 4: // AV info
       for (auto &source : sources) {
+        std::vector<float> init = source->ReadPackets();
+        LOG("SIZE OF INIT: ", init.size());
+        SampleBlock<float> mort = SampleBlock<float>(init);
         source->PrintAVInfo();
-        std::cout << source->ReadPackets(false) << std::endl;
-        //std::cout << source->ReadPackets(false) << std::endl;
+        mort.PrintInfo();
       }
       break;
     case 5: // Song info
