@@ -23,9 +23,10 @@ int menuPrint() {
 }
 
 int main(int argc, char *argv[]) {
-  
-  LOG("libavcodec V.", LIBAVCODEC_VERSION_MAJOR,".",LIBAVCODEC_VERSION_MINOR,".",LIBAVCODEC_VERSION_MICRO);
-  LOG("libavformat V.", LIBAVFORMAT_VERSION_MAJOR,".",LIBAVFORMAT_VERSION_MINOR,".",LIBAVFORMAT_VERSION_MICRO);
+  LOG("libavcodec V.", LIBAVCODEC_VERSION_MAJOR, ".", LIBAVCODEC_VERSION_MINOR, ".",
+      LIBAVCODEC_VERSION_MICRO);
+  LOG("libavformat V.", LIBAVFORMAT_VERSION_MAJOR, ".", LIBAVFORMAT_VERSION_MINOR, ".",
+      LIBAVFORMAT_VERSION_MICRO);
 
   bool exitProgram = false;
   int indie = 0;

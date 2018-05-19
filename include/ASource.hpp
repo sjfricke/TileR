@@ -23,7 +23,7 @@ class ASource {
 
   int Size() { return mSampleBlocks.size(); }
 
-  SampleBlock<T> * operator[](int index) { return mSampleBlocks.at(index); }
+  SampleBlock<T> *operator[](int index) { return mSampleBlocks.at(index); }
 
   void PrintInfo();
 
@@ -79,7 +79,8 @@ ASource<T>::ASource(int size, const std::string &fileName) {
   }
 
   LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
-  LOG("STRING VERSION: ", av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
+  LOG("STRING VERSION: ",
+      av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
   mpAudioStream = mpFormatContext->streams[streamIndex];
   mpCodecContext = mpAudioStream->codec;
   mpCodecContext->codec = cdc;

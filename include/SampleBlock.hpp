@@ -25,9 +25,7 @@ struct ReductionOperator {
       mMax = applied;
     }
   }
-  T RetAv() {
-    return (numUsed == 0) ? 0 : runningTotal;
-  }
+  T RetAv() { return (numUsed == 0) ? 0 : runningTotal; }
 };
 
 /**
@@ -40,7 +38,7 @@ class SampleBlock {
  public:
   SampleBlock(std::vector<T> &init);
   ~SampleBlock();
-  T & operator[](int index) { return mSamples.at(index); }
+  T &operator[](int index) { return mSamples.at(index); }
 
   int GetSize();
   // Returns the number of samples for each channel.

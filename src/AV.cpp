@@ -34,7 +34,8 @@ AV::AV(std::string fileName) : mpFormatContext(NULL) {
   }
 
   LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
-  LOG("STRING VERSION: ", av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
+  LOG("STRING VERSION: ",
+      av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
 
   mpAudioStream = mpFormatContext->streams[streamIndex];
   mpCodecContext = mpAudioStream->codec;
