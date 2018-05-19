@@ -2,6 +2,9 @@
 
 [Style Guide](STYLE.md)
 
+Clang format to style code
+`clang-format -i -style=Google ./src/*.cpp ./include/*.hpp`
+
 ## Dependices
 
 ### Linux
