@@ -23,7 +23,7 @@ class ASource {
 
   int Size() { return mSampleBlocks.size(); }
 
-  SampleBlock<T> *operator[](int index) { return mSampleBlocks.at(index); }
+  SampleBlock<T> * operator[](int index) { return mSampleBlocks.at(index); }
 
   void PrintInfo();
 

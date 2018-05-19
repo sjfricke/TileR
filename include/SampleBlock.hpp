@@ -40,7 +40,7 @@ class SampleBlock {
  public:
   SampleBlock(std::vector<T> &init);
   ~SampleBlock();
-  T &operator[](int index) { return mSamples.at(index); }
+  T & operator[](int index) { return mSamples.at(index); }
 
   int GetSize();
   // Returns the number of samples for each channel.
