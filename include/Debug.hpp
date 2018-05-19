@@ -27,5 +27,5 @@ static std::ostream &operator,(std::ostream &out, std::ostream &(*f)(std::ostrea
     LOG("\n===== FATEL ERROR: ", code, " =====\n", err); \
     exit(code);                                          \
   }
-  
+
 #endif  // TILER_DEBUG_H_
