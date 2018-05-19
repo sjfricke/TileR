@@ -43,10 +43,13 @@ template<typename T> struct ReductionOperator
 template<typename T> class SampleBlock 
 {
 public:
-  SampleBlock (std::vector<T> init);
- // ~SampleBlock();
+    SampleBlock (std::vector<T> & init);
+    // ~SampleBlock();
+    T & operator[] (int index){
+    return mSamples.at(index);
+    }
 
-  int GetSize();
+    int GetSize();
   // Returns the number of samples for each channel.
   // Need copy constructor and copy assignment
   int ShiftBlock(int shiftHz);
@@ -66,10 +69,10 @@ private:
  */ 
 template <class T> int SampleBlock<T>::GetSize()
     {
-    return mSamples.size;
+    return mSamples.size();
 };
 
-template<class T> SampleBlock<T>::SampleBlock (std::vector<T> init): mPitch(0)
+template<class T> SampleBlock<T>::SampleBlock (std::vector<T> & init): mPitch(0)
     {
     mWidth = sizeof(T);
     mSamples = init;

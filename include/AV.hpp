@@ -28,6 +28,8 @@ public:
   void PrintAVInfo(void);
   // Returns the number of samples for each channel.
   std::vector<float> ReadPackets(bool verbose = false);
+  int mSamplingRate;
+  int mNumSamples;
 private:
   void printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* frame);
 
@@ -35,8 +37,8 @@ private:
   AVFormatContext* mpFormatContext;
   AVStream* mpAudioStream;
   AVCodecContext* mpCodecContext;
-  int mSamplingRate;
-  int mNumSamples;
+  
+  
   
 };
 

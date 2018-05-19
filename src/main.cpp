@@ -2,6 +2,7 @@
 #include "Debug.hpp"
 #include "AV.hpp"
 #include "SampleBlock.hpp"
+#include "ASource.hpp"
 #include <unistd.h> // access(2)
 #include <vector>
 
@@ -22,43 +23,41 @@ int menuPrint() {
   return input;
 }
 
+
 int main(int argc, char *argv[]) {
 
   bool exitProgram = false;
-  std::vector<AV*> sources;
-
+  int indie = 0;
+  std::vector<ASource<float> *> sources;
+  std::string fileName {"./data/video0.mp4"};
   while (!exitProgram) {
     int input = menuPrint();
 
     switch(input) {
-    case 1: // add AV Source
-      {
-	std::string fileName {"./data/video0.mp4"};
-	while (1) {
-	  std::cout << "Enter AV Source path: ";
-	  //std::cin >> fileName;
-	  if ( access( fileName.c_str(), F_OK ) == -1 ) {
-	    LOG("... file is fake news, try again");
-	  } else {
-	    break;
-	  }
-	}
-	AV* source = new AV(fileName);
-	sources.push_back(source);
-      }
+      case 1: // add AV Source
+	      while (1) {
+	        std::cout << "Enter AV Source path: ";
+	        //std::cin >> fileName;
+	        if ( access( fileName.c_str(), F_OK ) == -1 ) {
+	          LOG("... file is fake news, try again");
+	        } else {
+	          break;
+	        }
+	      }
+        sources.push_back(new ASource<float>(44100, fileName));
       break;
     case 2: // add Song
       break;
     case 3: // check if Song can be matched
       break;
     case 4: // AV info
-      for (auto &source : sources) {
-        std::vector<float> init = source->ReadPackets();
-        LOG("SIZE OF INIT: ", init.size());
-        SampleBlock<float> mort = SampleBlock<float>(init);
-        source->PrintAVInfo();
-        mort.PrintInfo();
-      }
+        indie = 0;
+        for(auto & source : sources){
+          LOG("SOURCE ", indie);
+          indie++;
+          source->PrintInfo();
+        }
+        
       break;
     case 5: // Song info
       break;
@@ -78,8 +77,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  for (auto &source : sources) {
-    delete source;
-  }
+  //for (auto &source : sources) {
+   // delete source;
+ // }
   return 0;
 }
