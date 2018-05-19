@@ -33,11 +33,11 @@ template<typename T> class ASource {
 
     private:
         std::vector<SampleBlock<T> *> mSampleBlocks;
-        int mSamplingRate;
-        int mNumberSamples;
-        int mNumberBlocks;
-        int mBlockSize;
-        int mLast;
+        int mSamplingRate = 0;
+        int mNumberSamples = 0;
+        int mNumberBlocks = 0;
+        int mBlockSize = 0;
+        int mLast = 0;
 
 };
 
@@ -107,6 +107,7 @@ template<typename T> ASource<T>::ASource(int size, const std::string & fileName)
   FILE * outfile = fopen("./data/processed_samples.txt", "wb");
 
   // Read the packets in a loop
+  mNumberSamples = 0; // PARANOIA
   while (av_read_frame(mpFormatContext, &readingPacket) == 0) {
     if (readingPacket.stream_index == mpAudioStream->index) {
       
