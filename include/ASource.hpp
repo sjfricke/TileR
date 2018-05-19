@@ -38,59 +38,59 @@ class ASource {
 
 template <typename T>
 ASource<T>::ASource(int size, const std::string &fileName) {
-  AVFrame *mpFrame = nullptr;
-  AVFormatContext *mpFormatContext = NULL;
-  AVStream *mpAudioStream = nullptr;
-  AVCodecContext *mpCodecContext = nullptr;
+  AVFrame *pFrame = nullptr;
+  AVFormatContext *pFormatContext = NULL;
+  AVStream *pAudioStream = nullptr;
+  AVCodecContext *pCodecContext = nullptr;
 
   mBlockSize = size;
 
   av_register_all();  // Initialize FFmpeg
 
-  mpFrame = av_frame_alloc();
-  if (!mpFrame) {
+  pFrame = av_frame_alloc();
+  if (!pFrame) {
     FATAL("Error allocating the frame", -1);
   }
 
-  if (avformat_open_input(&mpFormatContext, fileName.c_str(), NULL, NULL) != 0) {
+  if (avformat_open_input(&pFormatContext, fileName.c_str(), NULL, NULL) != 0) {
     // std::cout << "DYING" << std::flushed;
-    av_free(mpFrame);
+    av_free(pFrame);
     LOG("MORE_DYING");
     FATAL("Error opening the file", -1);
   }
 
-  if (avformat_find_stream_info(mpFormatContext, NULL) < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
+  if (avformat_find_stream_info(pFormatContext, NULL) < 0) {
+    av_free(pFrame);
+    avformat_close_input(&pFormatContext);
     FATAL("Error finding the stream info", -1);
   }
 
   // Find the audio stream
-  AVCodec *cdc = nullptr;
-  int streamIndex = av_find_best_stream(mpFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &cdc, 0);
+  AVCodec *pCdc = nullptr;
+  int streamIndex = av_find_best_stream(pFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &pCdc, 0);
   if (streamIndex < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
+    av_free(pFrame);
+    avformat_close_input(&pFormatContext);
     FATAL("Could not find any audio stream in the file", -1);
   }
 
-  if (!cdc) {
+  if (!pCdc) {
     FATAL("Codec couldn't be opened", -1);
   }
 
-  LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
-  LOG("STRING VERSION: ", av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
-  mpAudioStream = mpFormatContext->streams[streamIndex];
-  mpCodecContext = mpAudioStream->codec;
-  mpCodecContext->codec = cdc;
+  LOG("CODEC_TYPE ", pFormatContext->streams[streamIndex]->codec->codec_type);
+  LOG("STRING VERSION: ", av_get_media_type_string(pFormatContext->streams[streamIndex]->codec->codec_type));
+  pAudioStream = pFormatContext->streams[streamIndex];
+  pCodecContext = pAudioStream->codec;
+  pCodecContext->codec = pCdc;
 
-  if (avcodec_open2(mpCodecContext, cdc, NULL) < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
+  if (avcodec_open2(pCodecContext, pCdc, NULL) < 0) {
+    av_free(pFrame);
+    avformat_close_input(&pFormatContext);
     FATAL("Couldn't open the context with the decoder", -1);
   }
 
-  mSamplingRate = mpCodecContext->sample_rate;
+  mSamplingRate = pCodecContext->sample_rate;
 
   AVPacket readingPacket;
   AVPacket decodingPacket;
@@ -102,13 +102,13 @@ ASource<T>::ASource(int size, const std::string &fileName) {
 
   // Read the packets in a loop
   mNumberSamples = 0;  // PARANOIA
-  while (av_read_frame(mpFormatContext, &readingPacket) == 0) {
-    if (readingPacket.stream_index == mpAudioStream->index) {
+  while (av_read_frame(pFormatContext, &readingPacket) == 0) {
+    if (readingPacket.stream_index == pAudioStream->index) {
       // readingPacket;
       av_packet_ref(&decodingPacket, &readingPacket);
 
       // Get the data size per element in the stream
-      int dataSize = av_get_bytes_per_sample(mpCodecContext->sample_fmt);
+      int dataSize = av_get_bytes_per_sample(pCodecContext->sample_fmt);
 
       // Audio packets can have multiple audio frames in a single packet
       while (decodingPacket.size > 0) {
@@ -117,15 +117,15 @@ ASource<T>::ASource(int size, const std::string &fileName) {
         // frame is finished before
         // we can use it
         int gotFrame = 0;
-        int result = avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &decodingPacket);
+        int result = avcodec_decode_audio4(pCodecContext, pFrame, &gotFrame, &decodingPacket);
         if (result >= 0 && gotFrame) {
           decodingPacket.size -= result;
           decodingPacket.data += result;
-          mNumberSamples += mpFrame->nb_samples;
+          mNumberSamples += pFrame->nb_samples;
           // Write float32 data for the channel
-          for (int jj = 0; jj < mpFrame->nb_samples; jj++) {
-            fwrite(mpFrame->data[0] + jj * dataSize, dataSize, 1, outFile);
-            float sample = *((float *)(mpFrame->data[0] + jj * dataSize));
+          for (int jj = 0; jj < pFrame->nb_samples; jj++) {
+            fwrite(pFrame->data[0] + jj * dataSize, dataSize, 1, outFile);
+            float sample = *((float *)(pFrame->data[0] + jj * dataSize));
             allSamples.push_back(sample);
           }
 
@@ -147,11 +147,11 @@ ASource<T>::ASource(int size, const std::string &fileName) {
   // the CODEC_CAP_DELAY flag
   // is set, there can be buffered up frames that need to be flushed, so we'll
   // do that
-  if (mpCodecContext->codec->capabilities /*& CODEC_CAP_DELAY*/) {
+  if (pCodecContext->codec->capabilities /*& CODEC_CAP_DELAY*/) {
     av_init_packet(&readingPacket);
     // Decode all the remaining frames in the buffer, until the end is reached
     int gotFrame = 0;
-    while (avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &readingPacket) >= 0 &&
+    while (avcodec_decode_audio4(pCodecContext, pFrame, &gotFrame, &readingPacket) >= 0 &&
            gotFrame) {
       // We now have a fully decoded audio frame
     }
@@ -176,9 +176,9 @@ ASource<T>::ASource(int size, const std::string &fileName) {
   }
 
   // Todo: Complete Cleanup
-  av_free(mpFrame);
-  avcodec_close(mpCodecContext);
-  avformat_close_input(&mpFormatContext);
+  av_free(pFrame);
+  avcodec_close(pCodecContext);
+  avformat_close_input(&pFormatContext);
 }
 
 template <typename T>

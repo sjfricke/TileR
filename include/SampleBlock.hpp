@@ -16,16 +16,16 @@ struct ReductionOperator {
   // ReductionOperator<T>();
   int numUsed = 0;
   T runningTotal = 0;
-  T mMax = 0;
+  T max = 0;
   T averageMagnitude = 0;
   void operator()(const T &applied) {
     numUsed++;
     runningTotal += applied;
-    if (applied > mMax) {
-      mMax = applied;
+    if (applied > max) {
+      max = applied;
     }
   }
-  T RetAv() {
+  T RetAverage() {
     return (numUsed == 0) ? 0 : runningTotal;
   }
 };
@@ -71,10 +71,10 @@ template <class T>
 SampleBlock<T>::SampleBlock(std::vector<T> &init) : mPitch(0) {
   mWidth = sizeof(T);
   mSamples = init;
-  ReductionOperator<T> max =
+  ReductionOperator<T> reductionOperator =
       std::for_each(mSamples.begin(), mSamples.end(), ReductionOperator<T>());
-  mMax = max.mMax;
-  mAverage = max.RetAv();
+  mMax = reductionOperator.max;
+  mAverage = reductionOperator.RetAverage();
 };
 
 template <class T>
