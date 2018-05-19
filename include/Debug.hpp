@@ -9,23 +9,23 @@
 #include <iostream>
 #include <utility>
 
-#define LOG(...) std::cout , __VA_ARGS__ , std::endl
+#define LOG(...) std::cout, __VA_ARGS__, std::endl
 template <typename T>
-std::ostream& operator,(std::ostream& out, const T& t) {
+std::ostream &operator,(std::ostream &out, const T &t) {
   out << t;
   return out;
 }
 
-//overloaded version to handle all those special std::endl and others...
-static std::ostream& operator,(std::ostream& out, std::ostream&(*f)(std::ostream&)) {
+// overloaded version to handle all those special std::endl and others...
+static std::ostream &operator,(std::ostream &out, std::ostream &(*f)(std::ostream &)) {
   out << f;
   return out;
 }
 
 #define FATAL(err, code)                                 \
-{                                                        \
-  LOG("\n===== FATEL ERROR: ", code, " =====\n", err);   \
-  exit(code);                                            \
-}                                                        \
+  {                                                      \
+    LOG("\n===== FATEL ERROR: ", code, " =====\n", err); \
+    exit(code);                                          \
+  }
 
-#endif // TILER_DEBUG_H_
+#endif  // TILER_DEBUG_H_

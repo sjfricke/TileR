@@ -10,8 +10,7 @@
 #include <iostream>
 #include <vector>
 
-extern "C"
-{
+extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
@@ -21,25 +20,23 @@ extern "C"
 // TODO
 
 class AV {
-public:
+ public:
   AV(std::string fileName);
   ~AV();
 
   void PrintAVInfo(void);
   // Returns the number of samples for each channel.
-  std::vector<float> ReadPackets(bool verbose = false);
+  std::vector<float> ReadPackets();
   int mSamplingRate;
   int mNumSamples;
-private:
-  void printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* frame);
 
-  AVFrame* mpFrame;
-  AVFormatContext* mpFormatContext;
-  AVStream* mpAudioStream;
-  AVCodecContext* mpCodecContext;
-  
-  
-  
+ private:
+  void printAudioFrameInfo(const AVCodecContext *codecContext, const AVFrame *frame);
+
+  AVFrame *mpFrame;
+  AVFormatContext *mpFormatContext;
+  AVStream *mpAudioStream;
+  AVCodecContext *mpCodecContext;
 };
 
-#endif // TILER_AV_H_
+#endif  // TILER_AV_H_
