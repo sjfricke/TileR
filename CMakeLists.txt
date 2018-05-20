@@ -11,9 +11,12 @@ if(${APPLE})
   link_directories(/usr/local/Cellar/ffmpeg/4.0/lib)
 else()
   include_directories(include)
-  set(AV_LIBS_LINK "-lavcodec -lavformat -lavutil")
+#  include_directories(/usr/include/x86_64-linux-gnu/)
+ # link_directories(/usr/lib/x86_64-linux-gnu)
+  #set(AV_LIBS_LINK "-lavcodec -lavformat -lavutil")
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${AV_LIBS_LINK}")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lavcodec -lavformat -lavutil")
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lavformat-ffmpeg -lavutil-ffmpeg")
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib/x86_64-linux-gnu -lavcode -lavformat -lavutil")
 endif()
 
 
@@ -29,4 +32,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
 add_executable(${NAME} ${SOURCES})
 
-target_link_libraries(${NAME} avcodec avformat avutil)
+if(${APPLE})
+  target_link_libraries(${NAME} avcodec avformat avutil)
+else()
+  # I don't fruicjdsfajlk know
+  target_link_libraries(${NAME} avcodec-ffmpeg avformat-ffmpeg avutil-ffmpeg)
+endif()
