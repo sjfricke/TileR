@@ -26,9 +26,7 @@ struct ReductionOperator {
     }
   }
 
-  T RetAverage() {
-    return (numUsed == 0) ? 0 : runningTotal;
-  }
+  T RetAverage() { return (numUsed == 0) ? 0 : runningTotal; }
 };
 
 /**

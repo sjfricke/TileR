@@ -78,12 +78,12 @@ ASource<T>::ASource(int size, const std::string &fileName) {
     FATAL("Codec couldn't be opened", -1);
   }
 
-  LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
+  LOG("CODEC_TYPE ", pFormatContext->streams[streamIndex]->codec->codec_type);
   LOG("STRING VERSION: ",
-      av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
-  mpAudioStream = mpFormatContext->streams[streamIndex];
-  mpCodecContext = mpAudioStream->codec;
-  mpCodecContext->codec = cdc;
+      av_get_media_type_string(pFormatContext->streams[streamIndex]->codec->codec_type));
+  pAudioStream = pFormatContext->streams[streamIndex];
+  pCodecContext = pAudioStream->codec;
+  pCodecContext->codec = pCdc;
 
   if (avcodec_open2(pCodecContext, pCdc, NULL) < 0) {
     av_free(pFrame);
