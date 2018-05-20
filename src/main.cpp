@@ -1,3 +1,5 @@
+#include <sys/types.h> // mkdir
+#include <sys/stat.h> // mkdir check
 #include <unistd.h>  // access(2)
 #include <vector>
 #include "ASource.hpp"
@@ -9,7 +11,7 @@ int menuPrint() {
   LOG("\n******** Main Menu ********");
   LOG("\t1) Add new AV Source");
   LOG("\t2) Add new Song");
-  LOG("\t3) See if AV Source can match to Song");
+  LOG("\t3) Output merged sources");
   LOG("\t4) Print AV Source status and info");
   LOG("\t5) Print Song status and info");
   LOG("\t6) Suprise me mothur fuker!");
@@ -32,6 +34,8 @@ int main(int argc, char *argv[]) {
   int indie = 0;
   std::vector<ASource<float> *> sources;
   std::string fileName{"./data/video0.mp4"};
+  std::string outFile{"./test.mp4"};
+
   while (!exitProgram) {
     int input = menuPrint();
 
@@ -50,7 +54,22 @@ int main(int argc, char *argv[]) {
         break;
       case 2:  // add Song
         break;
-      case 3:  // check if Song can be matched
+      case 3:  // Merge source to output
+
+	std::cout << "Enter output path: ";
+	// std::cin >> outFile;
+
+	{
+	  // need to make sure output folder is there
+	  struct stat st = {0};
+	  if (stat("./output", &st) == -1) {
+	    mkdir("./output", 0777);
+	  }
+	    LOG("\n1111\n");
+	  AV testAV("./data/video0.mp4");
+	  testAV.Stich("output/test.mp4");
+	}
+
         break;
       case 4:  // AV info
         indie = 0;

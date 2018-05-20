@@ -1,135 +1,192 @@
 #include "AV.hpp"
 #include "Debug.hpp"
 
-AV::AV(std::string fileName) : mpFormatContext(NULL) {
-  av_register_all();  // Initialize FFmpeg
-
-  mpFrame = av_frame_alloc();
-  if (!mpFrame) {
-    FATAL("Error allocating the frame", -1);
-  }
-
-  if (avformat_open_input(&mpFormatContext, fileName.c_str(), NULL, NULL) != 0) {
-    av_free(mpFrame);
-    FATAL("Error opening the file", -1);
-  }
-
-  if (avformat_find_stream_info(mpFormatContext, NULL) < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
-    FATAL("Error finding the stream info", -1);
-  }
-
-  // Find the audio stream
-  AVCodec* cdc = nullptr;
-  int streamIndex = av_find_best_stream(mpFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &cdc, 0);
-  if (streamIndex < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
-    FATAL("Could not find any audio stream in the file", -1);
-  }
-
-  if (!cdc) {
-    FATAL("Codec couldn't be opened", -1);
-  }
-
-  LOG("CODEC_TYPE ", mpFormatContext->streams[streamIndex]->codec->codec_type);
-  LOG("STRING VERSION: ",
-      av_get_media_type_string(mpFormatContext->streams[streamIndex]->codec->codec_type));
-
-  mpAudioStream = mpFormatContext->streams[streamIndex];
-  mpCodecContext = mpAudioStream->codec;
-  mpCodecContext->codec = cdc;
-
-  if (avcodec_open2(mpCodecContext, cdc, NULL) < 0) {
-    av_free(mpFrame);
-    avformat_close_input(&mpFormatContext);
-    FATAL("Couldn't open the context with the decoder", -1);
-  }
-
-  mSamplingRate = mpCodecContext->sample_rate;
-  mNumSamples = 0;
-}
-
-void AV::PrintAVInfo() {
-  LOG("This stream has ", mpCodecContext->channels, " channels and a sample rate of ",
-      mpCodecContext->sample_rate, "Hz");
-  LOG("The data is in the format ", av_get_sample_fmt_name(mpCodecContext->sample_fmt));
-  LOG("type again: ", av_get_media_type_string(mpCodecContext->codec_type));
-  LOG("There are this many samples ", mNumSamples);
-}
-
-std::vector<float> AV::ReadPackets() {
-  AVPacket readingPacket;
-  AVPacket decodingPacket;
-  av_init_packet(&readingPacket);
-  av_init_packet(&decodingPacket);
-  int numSamples;
-  std::vector<float> allSamples;
-  FILE* outFile = fopen("./data/processed_samples.txt", "wb");
-
-  // Read the packets in a loop
-  while (av_read_frame(mpFormatContext, &readingPacket) == 0) {
-    if (readingPacket.stream_index == mpAudioStream->index) {
-      // readingPacket;
-      av_packet_ref(&decodingPacket, &readingPacket);
-
-      // Get the data size per element in the stream
-      int dataSize = av_get_bytes_per_sample(mpCodecContext->sample_fmt);
-
-      // Audio packets can have multiple audio frames in a single packet
-      while (decodingPacket.size > 0) {
-        // std::cout << "DECODING_SIZE " << decodingPacket.size << std::endl;
-        // Try to decode the packet into a frame
-        // Some frames rely on multiple packets, so we have to make sure the frame is finished
-        // before
-        // we can use it
-        int gotFrame = 0;
-        int result = avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &decodingPacket);
-        if (result >= 0 && gotFrame) {
-          decodingPacket.size -= result;
-          decodingPacket.data += result;
-          numSamples += mpFrame->nb_samples;
-          // Write float32 data for the channel
-          for (int jj = 0; jj < mpFrame->nb_samples; jj++) {
-            fwrite(mpFrame->data[0] + jj * dataSize, dataSize, 1, outFile);
-            float sample = *((float*)(mpFrame->data[0] + jj * dataSize));
-            allSamples.push_back(sample);
-          }
-
-          // We now have a fully decoded audio frame
-        } else {
-          decodingPacket.size = 0;
-          decodingPacket.data = nullptr;
-        }
-      }
-    }
-
-    // You *must* call av_free_packet() after each call to av_read_frame() or else you'll leak
-    // memory
-    // av_free_packet(&readingPacket); DEPRECATED
-    av_packet_unref(&readingPacket);
-    av_packet_unref(&decodingPacket);
-  }
-
-  // Some codecs will cause frames to be buffered up in the decoding process. If the CODEC_CAP_DELAY
-  // flag
-  // is set, there can be buffered up frames that need to be flushed, so we'll do that
-  if (mpCodecContext->codec->capabilities /*& CODEC_CAP_DELAY*/) {
-    av_init_packet(&readingPacket);
-    // Decode all the remaining frames in the buffer, until the end is reached
-    int gotFrame = 0;
-    while (avcodec_decode_audio4(mpCodecContext, mpFrame, &gotFrame, &readingPacket) >= 0 &&
-           gotFrame) {
-      // We now have a fully decoded audio frame
-    }
-  }
-  mNumSamples = allSamples.size();
-  return allSamples;
+AV::AV(std::string fileName)  {
+  mInputFiles.push_back(fileName);
 }
 
 AV::~AV() {
-  av_free(mpFrame);
-  avcodec_close(mpCodecContext);
-  avformat_close_input(&mpFormatContext);
+}
+
+void AV::PrintAVInfo() {
+}
+
+void AV::AddInputSource(std::string fileName) {
+    mInputFiles.push_back(fileName);
+}
+
+void AV::Stich(std::string outFile) {
+  OutputStream videoStream;
+  AVOutputFormat *outFormat;
+  AVFormatContext * formatContext;
+  AVCodec *videoCodec;
+  int ret;
+  AVDictionary *opt;
+
+  avformat_alloc_output_context2(&formatContext, NULL, NULL, outFile.c_str());
+  if (!formatContext) {
+    FATAL("Could not deduce output format from file extension", -1);
+  }
+
+  outFormat = formatContext->oformat;
+
+  if (outFormat->video_codec == AV_CODEC_ID_NONE) {
+    FATAL("No video support in codec, why you so bad bruh", -2);
+  }
+
+  ///////
+  // ADD Stream
+  AVCodecContext* codecContext;
+  // find the encoder
+
+  videoCodec = avcodec_find_encoder(outFormat->video_codec);
+  if (!videoCodec) {
+    FATAL("Could not find encoder for ", outFormat->video_codec);
+  }
+
+  videoStream.stream = avformat_new_stream(formatContext, videoCodec);
+  if (!videoStream.stream) {
+    FATAL("Could not allocate stream ", -1);
+  }
+
+  videoStream.stream->id = formatContext->nb_streams-1;
+  codecContext = videoStream.stream->codec;
+
+  codecContext->codec_id = outFormat->video_codec;
+
+  codecContext->bit_rate = 400000;
+  // Resolution must be a multiple of two.
+  codecContext->width = 720;
+  codecContext->height = 480;
+  videoStream.stream->time_base = (AVRational){ 1, 25 }; // 30 Frame Rate (FPS)
+  codecContext->time_base = videoStream.stream->time_base;
+
+  codecContext->gop_size = 12; // emit one intra frame every twelve frames at most
+  codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+
+  // Some formats want stream headers to be separate.
+  if (outFormat->flags & AVFMT_GLOBALHEADER) {
+    codecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+  }
+
+  ////////
+  // Open Video and allocate
+  LOG("WTF: \n", codecContext, "\n  ",  videoCodec, "\n  ", opt, "\n  ");
+  ret = avcodec_open2(codecContext, videoCodec, &opt);
+
+  av_dict_free(&opt);
+
+  if (ret < 0) {
+    FATAL("Could not open video codec: ", ret);
+  }
+
+  AVFrame* picture = av_frame_alloc();
+  if (!picture) {
+    FATAL("Could not allocate video frame", -1);
+  }
+
+  picture->format = codecContext->pix_fmt;
+  picture->width = codecContext->width;
+  picture->height = codecContext->height;
+
+  if (av_frame_get_buffer(picture, 32) < 0) {
+    FATAL("Could not allocate frame data", -1);
+  }
+
+  videoStream.frame = picture;
+
+  // idk what this does
+  av_dump_format(formatContext, 0, outFile.c_str(), 1);
+
+  if (avio_open(&formatContext->pb, outFile.c_str(), AVIO_FLAG_WRITE) < 0) {
+    FATAL("Could not open outFile: ", ret);
+  }
+
+  if (avformat_write_header(formatContext, &opt) < 0) {
+    FATAL("Error occurred when opening output file: ", -1);
+  }
+
+  //////////
+  // Fill with data
+
+  AVFrame* frame;
+  AVPacket packet = {0};
+  int gotPacket;
+  while (1) {
+    frame = dummyFrame(&videoStream);
+    av_init_packet(&packet);
+    if (avcodec_encode_video2(codecContext, &packet, frame, &gotPacket) < 0) {
+      FATAL("Error encoding video frame", -1);
+    }
+    av_packet_rescale_ts(&packet, codecContext->time_base, videoStream.stream->time_base);
+    packet.stream_index = videoStream.stream->index;
+
+    if (gotPacket) {
+      ret = av_interleaved_write_frame(formatContext, &packet);
+    } else {
+      ret = 0;
+    }
+
+    if (ret < 0) {
+      LOG("FAIL: ", aav_err2str(ret));
+      FATAL("Error while writing to video frame" , -1);
+    }
+
+    if (frame || gotPacket) {
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  av_write_trailer(formatContext);
+
+  ////////
+  // Close stream
+  avcodec_close(videoStream.stream->codec);
+  av_frame_free(&videoStream.frame);
+
+  avio_closep(&formatContext->pb);
+  avformat_free_context(formatContext);
+}
+
+
+AVFrame *AV::dummyFrame(OutputStream *ost)
+{
+  AVCodecContext *c = ost->stream->codec;
+
+  /* check if we want to generate more frames */
+  if (av_compare_ts(ost->next_pts, ost->stream->codec->time_base,
+		    10.0f, (AVRational){ 1, 1 }) >= 0) {
+    return NULL;
+  }
+
+  {
+    // fill with fake data
+    int x, y, i, ret;
+
+    ret = av_frame_make_writable(ost->frame);
+    if (ret < 0)
+      exit(1);
+
+    i = ost->next_pts;
+
+    /* Y */
+    for (y = 0; y < c->height; y++)
+      for (x = 0; x < c->width; x++)
+	ost->frame->data[0][y * ost->frame->linesize[0] + x] = x + y + i * 3;
+
+    /* Cb and Cr */
+    for (y = 0; y < c->height / 2; y++) {
+      for (x = 0; x < c->width / 2; x++) {
+	ost->frame->data[1][y * ost->frame->linesize[1] + x] = 128 + y + i * 2;
+	ost->frame->data[2][y * ost->frame->linesize[2] + x] = 64 + x + i * 5;
+      }
+    }
+  }
+
+
+  ost->frame->pts = ost->next_pts++;
+
+  return ost->frame;
 }

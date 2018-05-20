@@ -11,13 +11,38 @@
 #include <vector>
 
 extern "C" {
+#include <libavutil/avassert.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/timestamp.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 };
 
+av_always_inline char* aav_err2str(int errnum)
+{
+  static char str[AV_ERROR_MAX_STRING_SIZE];
+  memset(str, 0, sizeof(str));
+  return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
+}
+
 // Forward Declaration
 // TODO
+
+// TODO - Not have in global header scope
+typedef struct OutputStream {
+  AVStream *stream;
+
+  /* pts of the next frame that will be generated */
+  int64_t next_pts = 0;
+  int samples_count = 0;
+
+  AVFrame *frame;
+
+} OutputStream;
+
 
 class AV {
  public:
@@ -25,18 +50,12 @@ class AV {
   ~AV();
 
   void PrintAVInfo(void);
-  // Returns the number of samples for each channel.
-  std::vector<float> ReadPackets();
-  int mSamplingRate;
-  int mNumSamples;
+  void AddInputSource(std::string fileName);
+  void Stich(std::string outFile);
 
  private:
-  void printAudioFrameInfo(const AVCodecContext *codecContext, const AVFrame *frame);
-
-  AVFrame *mpFrame;
-  AVFormatContext *mpFormatContext;
-  AVStream *mpAudioStream;
-  AVCodecContext *mpCodecContext;
+  std::vector<std::string> mInputFiles;
+  AVFrame* dummyFrame(OutputStream *);
 };
 
 #endif  // TILER_AV_H_

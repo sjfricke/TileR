@@ -42,10 +42,9 @@ ASource<T>::ASource(int size, const std::string &fileName) {
   AVFormatContext *pFormatContext = NULL;
   AVStream *pAudioStream = nullptr;
   AVCodecContext *pCodecContext = nullptr;
+  AVCodecParameters *pCodecParameter = nullptr;
 
   mBlockSize = size;
-
-  av_register_all();  // Initialize FFmpeg
 
   pFrame = av_frame_alloc();
   if (!pFrame) {
@@ -78,11 +77,15 @@ ASource<T>::ASource(int size, const std::string &fileName) {
     FATAL("Codec couldn't be opened", -1);
   }
 
-  LOG("CODEC_TYPE ", pFormatContext->streams[streamIndex]->codec->codec_type);
+  LOG("CODEC_TYPE ", pFormatContext->streams[streamIndex]->codecpar->codec_type);
   LOG("STRING VERSION: ",
-      av_get_media_type_string(pFormatContext->streams[streamIndex]->codec->codec_type));
+      av_get_media_type_string(pFormatContext->streams[streamIndex]->codecpar->codec_type));
+
   pAudioStream = pFormatContext->streams[streamIndex];
+  pCodecParameter = pAudioStream->codecpar;
+
   pCodecContext = pAudioStream->codec;
+  //pCodecContext = avcodec_alloc_context3(pCdc);
   pCodecContext->codec = pCdc;
 
   if (avcodec_open2(pCodecContext, pCdc, NULL) < 0) {
