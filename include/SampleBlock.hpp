@@ -25,6 +25,7 @@ struct ReductionOperator {
       max = applied;
     }
   }
+
   T RetAverage() {
     return (numUsed == 0) ? 0 : runningTotal;
   }
