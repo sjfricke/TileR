@@ -1,6 +1,8 @@
 #include "AV.hpp"
 #include "Debug.hpp"
 
+#define INBUF_SIZE 4096
+
 AV::AV(std::string fileName)  {
   mInputFiles.push_back(fileName);
 }
@@ -15,147 +17,162 @@ void AV::AddInputSource(std::string fileName) {
     mInputFiles.push_back(fileName);
 }
 
-void AV::Stich(std::string outFile) {
-  OutputStream videoStream;
-  AVOutputFormat *outFormat;
-  AVFormatContext * formatContext;
-  AVCodec *videoCodec;
+void AV::Stich(std::string outFile, int start, int duration) {
+  AVFormatContext * pInFormatCtx = NULL;
+  AVFormatContext * pOutFormatCtx = NULL;
+  AVCodecContext * pDecoderCtx = NULL;
+  AVCodecContext * pEncoderCtx = NULL;
+  AVStream * pInStream;
+  AVStream * pOutStream;
+  AVCodec * pDecoderCodec;
+  AVCodec * pEncoderCodec;
+  AVPacket decodePacket;
+  AVPacket encodePacket;
+  AVFrame * pFrame; // one frame between all, maybe could multithread in far future
   int ret;
-  AVDictionary *opt;
+  int videoStream;
 
-  avformat_alloc_output_context2(&formatContext, NULL, NULL, outFile.c_str());
-  if (!formatContext) {
-    FATAL("Could not deduce output format from file extension", -1);
-  }
+  ///////// Open Input and Decoder
+  ret = avformat_open_input(&pInFormatCtx, mInputFiles[0].c_str(), NULL, NULL);
+  if (ret < 0) { FATAL("avformat_open_input()", -1); }
 
-  outFormat = formatContext->oformat;
+  ret = avformat_find_stream_info(pInFormatCtx, NULL);
+  if (ret < 0) { FATAL("avformat_find_stream_info()", -1); }
 
-  if (outFormat->video_codec == AV_CODEC_ID_NONE) {
-    FATAL("No video support in codec, why you so bad bruh", -2);
-  }
+  ret = av_find_best_stream(pInFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &pDecoderCodec, 0);
+  if (ret < 0) { FATAL("av_find_best_strem()", -1); }
+  videoStream = ret;
 
-  ///////
-  // ADD Stream
-  AVCodecContext* codecContext;
-  // find the encoder
+  pDecoderCtx = avcodec_alloc_context3(pDecoderCodec);
+  if (!pDecoderCtx) { FATAL("avcodec_alloc_context3()", -1); }
 
-  videoCodec = avcodec_find_encoder(outFormat->video_codec);
-  if (!videoCodec) {
-    FATAL("Could not find encoder for ", outFormat->video_codec);
-  }
+  pInStream = pInFormatCtx->streams[videoStream];
+  ret = avcodec_parameters_to_context(pDecoderCtx, pInStream->codecpar);
+  if (ret < 0) { FATAL("avcodec_parameters_to_context()", -1); }
 
-  videoStream.stream = avformat_new_stream(formatContext, videoCodec);
-  if (!videoStream.stream) {
-    FATAL("Could not allocate stream ", -1);
-  }
+  ret = avcodec_open2(pDecoderCtx, pDecoderCodec, NULL);
+  if (ret < 0) { FATAL("avcodec_open2(decoder)", -1); }
 
-  videoStream.stream->id = formatContext->nb_streams-1;
-  codecContext = videoStream.stream->codec;
+  ////////////// Setup Encoder for Output
+  pEncoderCodec = avcodec_find_encoder_by_name("libx264");
+  if (!pEncoderCodec) { FATAL("avcodec_find_encoder_by_name()", -1); }
 
-  codecContext->codec_id = outFormat->video_codec;
+  ret = avformat_alloc_output_context2(&pOutFormatCtx, NULL, NULL, outFile.c_str());
+  if (ret < 0) { FATAL("avformat_alloc_output_context2()", -1); }
 
-  codecContext->bit_rate = 400000;
-  // Resolution must be a multiple of two.
-  codecContext->width = 720;
-  codecContext->height = 480;
-  videoStream.stream->time_base = (AVRational){ 1, 25 }; // 30 Frame Rate (FPS)
-  codecContext->time_base = videoStream.stream->time_base;
+  pEncoderCtx = avcodec_alloc_context3(pEncoderCodec);
+  if (ret < 0) { FATAL("avcodec_alloc_context3()", -1); }
 
-  codecContext->gop_size = 12; // emit one intra frame every twelve frames at most
-  codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
+  ret = avio_open(&pOutFormatCtx->pb, outFile.c_str(), AVIO_FLAG_WRITE);
+  if (ret < 0) { FATAL("avio_open()", -1); }
 
-  // Some formats want stream headers to be separate.
-  if (outFormat->flags & AVFMT_GLOBALHEADER) {
-    codecContext->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-  }
+  ////////// Initialize encoder context
+  //pEncoderCtx->time_base = av_inv_q(pDecoderCtx->framerate);
+  pEncoderCtx->time_base = (AVRational){1, 25};
+  LOG("encode time_base :", pEncoderCtx->time_base.num, " / ", pEncoderCtx->time_base.den);
+  LOG("decod etime_base :", pDecoderCtx->framerate.num, " / ", pDecoderCtx->framerate.den);
+  pEncoderCtx->pix_fmt = pDecoderCtx->pix_fmt;
+  pEncoderCtx->bit_rate = pDecoderCtx->bit_rate;
+  pEncoderCtx->codec_id = pDecoderCtx->codec_id;
+  pEncoderCtx->width = pDecoderCtx->width;
+  pEncoderCtx->height = pDecoderCtx->height;
 
-  ////////
-  // Open Video and allocate
-  LOG("WTF: \n", codecContext, "\n  ",  videoCodec, "\n  ", opt, "\n  ");
-  ret = avcodec_open2(codecContext, videoCodec, &opt);
+  ret = avcodec_open2(pEncoderCtx, pEncoderCodec, NULL);
+  if (ret < 0) { FATAL("avcodec_open2(encoder)", -1); }
 
-  av_dict_free(&opt);
+  pOutStream = avformat_new_stream(pOutFormatCtx, pEncoderCodec);
+  if (!pOutStream) { FATAL("avformat_new_stream()", -1); }
+  pOutStream->time_base = pEncoderCtx->time_base;
 
-  if (ret < 0) {
-    FATAL("Could not open video codec: ", ret);
-  }
+  ret = avcodec_parameters_from_context(pOutStream->codecpar, pEncoderCtx);
+  if (ret < 0) { FATAL("avcodec_parameters_from_context()", -1); }
 
-  AVFrame* picture = av_frame_alloc();
-  if (!picture) {
-    FATAL("Could not allocate video frame", -1);
-  }
+  ret = avformat_write_header(pOutFormatCtx, NULL);
+  if (ret < 0) { FATAL("avformat_write_header()", -1); }
 
-  picture->format = codecContext->pix_fmt;
-  picture->width = codecContext->width;
-  picture->height = codecContext->height;
+  ////////// Send Thou Frames
+  while (ret >= 0) {
+    ret = av_read_frame(pInFormatCtx, &decodePacket);
+    if (ret < 0) { break; }
 
-  if (av_frame_get_buffer(picture, 32) < 0) {
-    FATAL("Could not allocate frame data", -1);
-  }
+    if (videoStream == decodePacket.stream_index) {
 
-  videoStream.frame = picture;
+      int ret2 = avcodec_send_packet(pDecoderCtx, &decodePacket);
+      if (ret2 < 0) { FATAL("avcodec_send_packet()", -1); }
 
-  // idk what this does
-  av_dump_format(formatContext, 0, outFile.c_str(), 1);
+      while (ret2 >= 0) {
+	pFrame = av_frame_alloc();
+	if (!pFrame) { FATAL("av_frame_alloc()", -1); }
 
-  if (avio_open(&formatContext->pb, outFile.c_str(), AVIO_FLAG_WRITE) < 0) {
-    FATAL("Could not open outFile: ", ret);
-  }
+	// Decode frame
+	ret2 = avcodec_receive_frame(pDecoderCtx, pFrame);
+	if (ret2 == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+	  //	  if (ret2 == AVERROR(EAGAIN)) { LOG("EAGAIN"); }
+	  if (ret2 == AVERROR_EOF) { LOG("AVERROR_EOF"); }
+	  av_frame_free(&pFrame);
+	  ret = 0;
+	  break;
+	} else if (ret2 < 0) {
+	  FATAL("avcodec_receive_frame()", -1);
+	}
+	//	LOG("YOLO");
+	// Encode frame
 
-  if (avformat_write_header(formatContext, &opt) < 0) {
-    FATAL("Error occurred when opening output file: ", -1);
-  }
+	av_init_packet(&encodePacket);
+	encodePacket.data = NULL;
+	encodePacket.size = 0;
 
-  //////////
-  // Fill with data
+	int ret3 = avcodec_send_frame(pEncoderCtx, pFrame);
+	if (ret3 < 0) { FATAL("avcodec_send_frame()", -1); }
 
-  AVFrame* frame;
-  AVPacket packet = {0};
-  int gotPacket;
-  while (1) {
-    frame = dummyFrame(&videoStream);
-    av_init_packet(&packet);
-    if (avcodec_encode_video2(codecContext, &packet, frame, &gotPacket) < 0) {
-      FATAL("Error encoding video frame", -1);
-    }
-    av_packet_rescale_ts(&packet, codecContext->time_base, videoStream.stream->time_base);
-    packet.stream_index = videoStream.stream->index;
+	while (1) {
+	  ret3 = avcodec_receive_packet(pEncoderCtx, &encodePacket);
+	  if (ret3 < 0) {
+	    break;
+	  }
 
-    if (gotPacket) {
-      ret = av_interleaved_write_frame(formatContext, &packet);
-    } else {
-      ret = 0;
-    }
+	  encodePacket.stream_index = 0;
+	  av_packet_rescale_ts(&encodePacket, pInFormatCtx->streams[videoStream]->time_base,
+			       pOutFormatCtx->streams[0]->time_base);
+	  ret3 = av_interleaved_write_frame(pOutFormatCtx, &encodePacket);
+	  if (ret3 < 0) { FATAL("av_interleaved_write_frame", -1); }
+	}
 
-    if (ret < 0) {
-      LOG("FAIL: ", aav_err2str(ret));
-      FATAL("Error while writing to video frame" , -1);
-    }
+	// clean up these ret for errors
+	if (ret3 == AVERROR_EOF) {
+	  ret = 0;
+	}
 
-    if (frame || gotPacket) {
-      continue;
-    } else {
-      break;
-    }
-  }
+	av_frame_free(&pFrame);
+      } // while (ret2 >= 0)
+    } // if (videoStream)
 
-  av_write_trailer(formatContext);
+    av_packet_unref(&decodePacket);
+  } // while (ret >= 0)
 
-  ////////
-  // Close stream
-  avcodec_close(videoStream.stream->codec);
-  av_frame_free(&videoStream.frame);
+  // Flush decoder
+  decodePacket.data = NULL;
+  decodePacket.size = 0;
+  // TODO
+  av_packet_unref(&decodePacket);
 
-  avio_closep(&formatContext->pb);
-  avformat_free_context(formatContext);
+  // flush encoder
+
+  av_write_trailer(pOutFormatCtx);
+
+  avformat_close_input(&pInFormatCtx);
+  avformat_close_input(&pOutFormatCtx);
+  avcodec_free_context(&pDecoderCtx);
+  avcodec_free_context(&pEncoderCtx);
 }
 
 
 AVFrame *AV::dummyFrame(OutputStream *ost)
 {
+  /*
   AVCodecContext *c = ost->stream->codec;
 
-  /* check if we want to generate more frames */
+  // check if we want to generate more frames
   if (av_compare_ts(ost->next_pts, ost->stream->codec->time_base,
 		    10.0f, (AVRational){ 1, 1 }) >= 0) {
     return NULL;
@@ -171,12 +188,12 @@ AVFrame *AV::dummyFrame(OutputStream *ost)
 
     i = ost->next_pts;
 
-    /* Y */
+    // Y
     for (y = 0; y < c->height; y++)
       for (x = 0; x < c->width; x++)
 	ost->frame->data[0][y * ost->frame->linesize[0] + x] = x + y + i * 3;
 
-    /* Cb and Cr */
+    // Cb and Cr 
     for (y = 0; y < c->height / 2; y++) {
       for (x = 0; x < c->width / 2; x++) {
 	ost->frame->data[1][y * ost->frame->linesize[1] + x] = 128 + y + i * 2;
@@ -187,6 +204,6 @@ AVFrame *AV::dummyFrame(OutputStream *ost)
 
 
   ost->frame->pts = ost->next_pts++;
-
+  */
   return ost->frame;
 }

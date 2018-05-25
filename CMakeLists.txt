@@ -32,9 +32,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
 add_executable(${NAME} ${SOURCES})
 
-if(${APPLE})
+#if(${APPLE})
   target_link_libraries(${NAME} avcodec avformat avutil)
-else()
+#else()
   # I don't fruicjdsfajlk know
-  target_link_libraries(${NAME} avcodec-ffmpeg avformat-ffmpeg avutil-ffmpeg)
-endif()
+ # target_link_libraries(${NAME} avcodec-ffmpeg avformat-ffmpeg avutil-ffmpeg)
+#endif()

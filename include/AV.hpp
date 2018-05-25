@@ -51,7 +51,7 @@ class AV {
 
   void PrintAVInfo(void);
   void AddInputSource(std::string fileName);
-  void Stich(std::string outFile);
+  void Stich(std::string outFile, int start, int duration);
 
  private:
   std::vector<std::string> mInputFiles;

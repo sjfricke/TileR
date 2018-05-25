@@ -65,9 +65,9 @@ int main(int argc, char *argv[]) {
 	  if (stat("./output", &st) == -1) {
 	    mkdir("./output", 0777);
 	  }
-	    LOG("\n1111\n");
+
 	  AV testAV("./data/video0.mp4");
-	  testAV.Stich("output/test.mp4");
+	  testAV.Stich("output/test.mp4", 0, 0);
 	}
 
         break;
