@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 	  }
 
 	  AV testAV("./data/video0.mp4");
-	  testAV.Stich("output/test.mp4", 0, 0);
+	  testAV.Stich("output/test.mp4", 10, 50);
 	}
 
         break;

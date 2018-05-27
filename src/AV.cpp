@@ -70,7 +70,7 @@ void AV::Stich(std::string outFile, int start, int duration) {
   //pEncoderCtx->time_base = av_inv_q(pDecoderCtx->framerate);
   pEncoderCtx->time_base = (AVRational){1, 25};
   LOG("encode time_base :", pEncoderCtx->time_base.num, " / ", pEncoderCtx->time_base.den);
-  LOG("decod etime_base :", pDecoderCtx->framerate.num, " / ", pDecoderCtx->framerate.den);
+  LOG("decod etime_base :", pDecoderCtx->time_base.num, " / ", pDecoderCtx->time_base.den);
   pEncoderCtx->pix_fmt = pDecoderCtx->pix_fmt;
   pEncoderCtx->bit_rate = pDecoderCtx->bit_rate;
   pEncoderCtx->codec_id = pDecoderCtx->codec_id;
@@ -80,22 +80,44 @@ void AV::Stich(std::string outFile, int start, int duration) {
   ret = avcodec_open2(pEncoderCtx, pEncoderCodec, NULL);
   if (ret < 0) { FATAL("avcodec_open2(encoder)", -1); }
 
-  pOutStream = avformat_new_stream(pOutFormatCtx, pEncoderCodec);
+  pOutStream = avformat_new_stream(pOutFormatCtx, pDecoderCodec);
   if (!pOutStream) { FATAL("avformat_new_stream()", -1); }
-  pOutStream->time_base = pEncoderCtx->time_base;
+  pOutStream->time_base = pDecoderCtx->time_base;
 
-  ret = avcodec_parameters_from_context(pOutStream->codecpar, pEncoderCtx);
+  ret = avcodec_parameters_from_context(pOutStream->codecpar, pDecoderCtx);
   if (ret < 0) { FATAL("avcodec_parameters_from_context()", -1); }
 
   ret = avformat_write_header(pOutFormatCtx, NULL);
   if (ret < 0) { FATAL("avformat_write_header()", -1); }
 
+  int FPS = 24; // need to verify
+  int packetDuration = 1001;
+  int startDts = packetDuration * FPS * start;
+  int endDts = packetDuration * FPS * duration;
+  int test = 0;
+  LOG("startDts: ", startDts, "\tendDts: ", endDts);
+  //  ret = av_seek_frame(pInFormatCtx, videoStream, startDts, 0);
+  //if (ret < 0) { FATAL("av_seek_frame()", -1); }
+
   ////////// Send Thou Frames
   while (ret >= 0) {
+    av_init_packet(&decodePacket);
+    decodePacket.data = NULL;
+    decodePacket.size = 0;
+
     ret = av_read_frame(pInFormatCtx, &decodePacket);
     if (ret < 0) { break; }
 
     if (videoStream == decodePacket.stream_index) {
+      LOG("pts: ", decodePacket.pts, "\tdts: ", decodePacket.dts, "\tpos: ", decodePacket.pos, "\tdur: ", decodePacket.duration);
+      /*      if (decodePacket.dts > startDts && test == 0) {
+	test = 1;
+	LOG("=======================================");
+	ret = av_seek_frame(pInFormatCtx, videoStream, endDts, 0);
+	if (ret < 0) { FATAL("av_seek_frame()", -1); }
+	av_packet_unref(&decodePacket);
+	continue;
+      }
 
       int ret2 = avcodec_send_packet(pDecoderCtx, &decodePacket);
       if (ret2 < 0) { FATAL("avcodec_send_packet()", -1); }
@@ -115,7 +137,7 @@ void AV::Stich(std::string outFile, int start, int duration) {
 	} else if (ret2 < 0) {
 	  FATAL("avcodec_receive_frame()", -1);
 	}
-	//	LOG("YOLO");
+
 	// Encode frame
 
 	av_init_packet(&encodePacket);
@@ -132,9 +154,12 @@ void AV::Stich(std::string outFile, int start, int duration) {
 	  }
 
 	  encodePacket.stream_index = 0;
+	  std::cout << "encode: " << encodePacket.pts << "|" << encodePacket.dts << "\t";
 	  av_packet_rescale_ts(&encodePacket, pInFormatCtx->streams[videoStream]->time_base,
-			       pOutFormatCtx->streams[0]->time_base);
+	  		       pOutFormatCtx->streams[0]->time_base);
+	  std::cout << "encode: " << encodePacket.pts << "|" << encodePacket.dts << "\n";
 	  ret3 = av_interleaved_write_frame(pOutFormatCtx, &encodePacket);
+	  //ret3 = av_write_frame(pOutFormatCtx, &encodePacket);
 	  if (ret3 < 0) { FATAL("av_interleaved_write_frame", -1); }
 	}
 
@@ -145,6 +170,13 @@ void AV::Stich(std::string outFile, int start, int duration) {
 
 	av_frame_free(&pFrame);
       } // while (ret2 >= 0)
+      */
+      decodePacket.flags |= AV_PKT_FLAG_KEY;
+            av_packet_rescale_ts(&decodePacket, pInFormatCtx->streams[videoStream]->time_base,
+				 pOutFormatCtx->streams[0]->time_base);
+	    //decodePacket.stream_index = 0;
+      ret = av_interleaved_write_frame(pOutFormatCtx, &decodePacket);
+      if (ret < 0) { FATAL("av_interleaved_write_frame", -1); }
     } // if (videoStream)
 
     av_packet_unref(&decodePacket);
