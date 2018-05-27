@@ -1,4 +1,5 @@
 output/
+data/processed_samples.txt 
 
 # CMake
 CMakeCache.txt
