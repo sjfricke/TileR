@@ -50,6 +50,9 @@ ASource::ASource(int size, const std::string &fileName) : mBlockSize(size) {
   mNumberSamples = 0;  // PARANOIA
 
   // AV_SAMPLE_FMT_FLTP == float, planar
+  if (pCodecCtx->sample_fmt != AV_SAMPLE_FMT_FLTP) {
+    LOG("==========\n", "Warning, Audio not in Float planer format", "\n==========");
+  }
   LOG("\nAudio AVSampleFormat type: ", av_get_sample_fmt_name(pCodecCtx->sample_fmt));
 
   FILE *outFile = fopen("./data/processed_samples.txt", "wb");
