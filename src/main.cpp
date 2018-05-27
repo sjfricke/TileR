@@ -1,6 +1,6 @@
-#include <sys/types.h> // mkdir
-#include <sys/stat.h> // mkdir check
-#include <unistd.h>  // access(2)
+#include <sys/stat.h>   // mkdir check
+#include <sys/types.h>  // mkdir
+#include <unistd.h>     // access(2)
 #include <vector>
 #include "ASource.hpp"
 #include "AV.hpp"
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
   bool exitProgram = false;
   int indie = 0;
-  std::vector<ASource<float> *> sources;
+  std::vector<ASource *> sources;
   std::string fileName{"./data/video0.mp4"};
   std::string outFile{"./test.mp4"};
 
@@ -50,25 +50,25 @@ int main(int argc, char *argv[]) {
             break;
           }
         }
-        sources.push_back(new ASource<float>(44100, fileName));
+        sources.push_back(new ASource(44100, fileName));
         break;
       case 2:  // add Song
         break;
       case 3:  // Merge source to output
 
-	std::cout << "Enter output path: ";
-	// std::cin >> outFile;
+        std::cout << "Enter output path: ";
+        // std::cin >> outFile;
 
-	{
-	  // need to make sure output folder is there
-	  struct stat st = {0};
-	  if (stat("./output", &st) == -1) {
-	    mkdir("./output", 0777);
-	  }
+        {
+          // need to make sure output folder is there
+          struct stat st = {0};
+          if (stat("./output", &st) == -1) {
+            mkdir("./output", 0777);
+          }
 
-	  AV testAV("./data/video0.mp4");
-	  testAV.Stich("output/test.mp4", 10, 50);
-	}
+          AV testAV("./data/video0.mp4");
+          testAV.Stich("output/test.mp4", 10, 50);
+        }
 
         break;
       case 4:  // AV info

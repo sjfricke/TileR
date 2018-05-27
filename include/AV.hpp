@@ -11,18 +11,17 @@
 #include <vector>
 
 extern "C" {
-#include <libavutil/avassert.h>
-#include <libavutil/channel_layout.h>
-#include <libavutil/opt.h>
-#include <libavutil/mathematics.h>
-#include <libavutil/timestamp.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/avassert.h>
 #include <libavutil/avutil.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/opt.h>
+#include <libavutil/timestamp.h>
 };
 
-av_always_inline char* aav_err2str(int errnum)
-{
+av_always_inline char *aav_err2str(int errnum) {
   static char str[AV_ERROR_MAX_STRING_SIZE];
   memset(str, 0, sizeof(str));
   return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
@@ -43,7 +42,6 @@ typedef struct OutputStream {
 
 } OutputStream;
 
-
 class AV {
  public:
   AV(std::string fileName);
@@ -55,7 +53,7 @@ class AV {
 
  private:
   std::vector<std::string> mInputFiles;
-  AVFrame* dummyFrame(OutputStream *);
+  AVFrame *dummyFrame(OutputStream *);
 };
 
 #endif  // TILER_AV_H_
