@@ -28,161 +28,86 @@ class ASource {
   void PrintInfo();
 
  private:
+  void decode(AVCodecContext *pCodecCtx, AVPacket *pPacket, AVFrame *pFrame, FILE *outfile);
   std::vector<SampleBlock<T> *> mSampleBlocks;
   int mSamplingRate = 0;
   int mNumberSamples = 0;
-  int mNumberBlocks = 0;
   int mBlockSize = 0;
   int mLast = 0;
 };
 
 template <typename T>
-ASource<T>::ASource(int size, const std::string &fileName) {
+ASource<T>::ASource(int size, const std::string &fileName) :
+  mBlockSize(size) {
   AVFrame *pFrame = nullptr;
-  AVFormatContext *pFormatContext = NULL;
+  AVFormatContext *pFormatCtx = nullptr;
   AVStream *pAudioStream = nullptr;
-  AVCodecContext *pCodecContext = nullptr;
-  AVCodecParameters *pCodecParameter = nullptr;
+  AVCodecContext *pCodecCtx = nullptr;
+  AVCodec *pCodec = nullptr;
+  AVPacket packet;
+  int ret;
+  int audioStream;
 
-  mBlockSize = size;
+  // Set up decoder codec and context
+  ret = avformat_open_input(&pFormatCtx, fileName.c_str(), NULL, NULL);
+  if (ret < 0) { FATAL("ASource()::avformat_open_input()", -1); }
+
+  ret = avformat_find_stream_info(pFormatCtx, NULL);
+  if (ret < 0) { FATAL("ASource()::avformat_find_stream_info()", -1); }
+
+  ret = av_find_best_stream(pFormatCtx, AVMEDIA_TYPE_AUDIO, -1, -1, &pCodec, 0);
+  if (ret < 0) { FATAL("ASource()::av_find_best_strem()", -1); }
+  audioStream = ret;
+
+  pCodecCtx = avcodec_alloc_context3(pCodec);
+  if (!pCodecCtx) { FATAL("ASource()::avcodec_alloc_context3()", -1); }
+
+  pAudioStream = pFormatCtx->streams[audioStream];
+  ret = avcodec_parameters_to_context(pCodecCtx, pAudioStream->codecpar);
+  if (ret < 0) { FATAL("ASource()::avcodec_parameters_to_context()", -1); }
+
+  ret = avcodec_open2(pCodecCtx, pCodec, NULL);
+  if (ret < 0) { FATAL("ASource()::avcodec_open2(decoder)", -1); }
+
+  // Get data yall
+  mSamplingRate = pCodecCtx->sample_rate;
+  mNumberSamples = 0;  // PARANOIA
+
+  // AV_SAMPLE_FMT_FLTP == float, planar
+  LOG("\nAudio AVSampleFormat type: ", av_get_sample_fmt_name(pCodecCtx->sample_fmt));
+
+  FILE *outFile = fopen("./data/processed_samples.txt", "wb");
+  if (!outFile) { FATAL("ASource()::fopen()", -1); }
 
   pFrame = av_frame_alloc();
-  if (!pFrame) {
-    FATAL("Error allocating the frame", -1);
-  }
-
-  if (avformat_open_input(&pFormatContext, fileName.c_str(), NULL, NULL) != 0) {
-    // std::cout << "DYING" << std::flushed;
-    av_free(pFrame);
-    LOG("MORE_DYING");
-    FATAL("Error opening the file", -1);
-  }
-
-  if (avformat_find_stream_info(pFormatContext, NULL) < 0) {
-    av_free(pFrame);
-    avformat_close_input(&pFormatContext);
-    FATAL("Error finding the stream info", -1);
-  }
-
-  // Find the audio stream
-  AVCodec *pCdc = nullptr;
-  int streamIndex = av_find_best_stream(pFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, &pCdc, 0);
-  if (streamIndex < 0) {
-    av_free(pFrame);
-    avformat_close_input(&pFormatContext);
-    FATAL("Could not find any audio stream in the file", -1);
-  }
-
-  if (!pCdc) {
-    FATAL("Codec couldn't be opened", -1);
-  }
-
-  LOG("CODEC_TYPE ", pFormatContext->streams[streamIndex]->codecpar->codec_type);
-  LOG("STRING VERSION: ",
-      av_get_media_type_string(pFormatContext->streams[streamIndex]->codecpar->codec_type));
-
-  pAudioStream = pFormatContext->streams[streamIndex];
-  pCodecParameter = pAudioStream->codecpar;
-
-  pCodecContext = pAudioStream->codec;
-  //pCodecContext = avcodec_alloc_context3(pCdc);
-  pCodecContext->codec = pCdc;
-
-  if (avcodec_open2(pCodecContext, pCdc, NULL) < 0) {
-    av_free(pFrame);
-    avformat_close_input(&pFormatContext);
-    FATAL("Couldn't open the context with the decoder", -1);
-  }
-
-  mSamplingRate = pCodecContext->sample_rate;
-
-  AVPacket readingPacket;
-  AVPacket decodingPacket;
-  av_init_packet(&readingPacket);
-  av_init_packet(&decodingPacket);
-
-  std::vector<T> allSamples;
-  FILE *outFile = fopen("./data/processed_samples.txt", "wb");
+  if (!pFrame) { FATAL("ASource()::av_frame_alloc()", -1); }
 
   // Read the packets in a loop
-  mNumberSamples = 0;  // PARANOIA
-  while (av_read_frame(pFormatContext, &readingPacket) == 0) {
-    if (readingPacket.stream_index == pAudioStream->index) {
-      // readingPacket;
-      av_packet_ref(&decodingPacket, &readingPacket);
-
-      // Get the data size per element in the stream
-      int dataSize = av_get_bytes_per_sample(pCodecContext->sample_fmt);
-
-      // Audio packets can have multiple audio frames in a single packet
-      while (decodingPacket.size > 0) {
-        // Try to decode the packet into a frame
-        // Some frames rely on multiple packets, so we have to make sure the
-        // frame is finished before
-        // we can use it
-        int gotFrame = 0;
-        int result = avcodec_decode_audio4(pCodecContext, pFrame, &gotFrame, &decodingPacket);
-        if (result >= 0 && gotFrame) {
-          decodingPacket.size -= result;
-          decodingPacket.data += result;
-          mNumberSamples += pFrame->nb_samples;
-          // Write float32 data for the channel
-          for (int jj = 0; jj < pFrame->nb_samples; jj++) {
-            fwrite(pFrame->data[0] + jj * dataSize, dataSize, 1, outFile);
-            float sample = *((float *)(pFrame->data[0] + jj * dataSize));
-            allSamples.push_back(sample);
-          }
-
-        } else {
-          decodingPacket.size = 0;
-          decodingPacket.data = nullptr;
-        }
-      }
+  while (1) {
+    ret = av_read_frame(pFormatCtx, &packet);
+    if (ret < 0) {
+      LOG("Done reading frames");
+      break;
     }
 
-    // You *must* call av_free_packet() after each call to av_read_frame() or
-    // else you'll leak memory
-    // av_free_packet(&readingPacket); DEPRECATED
-    av_packet_unref(&readingPacket);
-    av_packet_unref(&decodingPacket);
-  }
-
-  // Some codecs will cause frames to be buffered up in the decoding process. If
-  // the CODEC_CAP_DELAY flag
-  // is set, there can be buffered up frames that need to be flushed, so we'll
-  // do that
-  if (pCodecContext->codec->capabilities /*& CODEC_CAP_DELAY*/) {
-    av_init_packet(&readingPacket);
-    // Decode all the remaining frames in the buffer, until the end is reached
-    int gotFrame = 0;
-    while (avcodec_decode_audio4(pCodecContext, pFrame, &gotFrame, &readingPacket) >= 0 &&
-           gotFrame) {
-      // We now have a fully decoded audio frame
+    if (packet.stream_index == audioStream) {
+      decode(pCodecCtx, &packet, pFrame, outFile);
     }
+
+    av_packet_unref(&packet);
   }
 
-  int sampleIndex = 0;
-  mNumberBlocks =
-      (mNumberSamples % mBlockSize) ? (mNumberSamples / mBlockSize + 1) : mNumberSamples / size;
-  mSampleBlocks = std::vector<SampleBlock<T> *>(mNumberBlocks);
-
-  for (auto &blockptr : mSampleBlocks) {
-    std::vector<T> block;
-    for (int kk = 0; kk < size; kk++) {
-      if ((sampleIndex * mBlockSize + kk) >= mNumberSamples) {
-        mLast = (kk % size);
-        break;
-      }
-      block.push_back(allSamples[sampleIndex * mBlockSize + kk]);
-    }
-    blockptr = new SampleBlock<T>(block);
-    sampleIndex++;
-  }
+  // Flush decoder packets for Narnia
+  LOG("Flushing... FOR NARNIA");
+  packet.data = NULL;
+  packet.size = 0;
+  decode(pCodecCtx, &packet, pFrame, outFile);
 
   // Todo: Complete Cleanup
+  fclose(outFile);
+  avcodec_free_context(&pCodecCtx);
+  avformat_close_input(&pFormatCtx);
   av_free(pFrame);
-  avcodec_close(pCodecContext);
-  avformat_close_input(&pFormatContext);
 }
 
 template <typename T>
@@ -195,6 +120,44 @@ ASource<T>::~ASource() {
 }
 
 template <typename T>
+void ASource<T>::decode(AVCodecContext *pCodecCtx, AVPacket *pPacket, AVFrame *pFrame, FILE *outFile) {
+
+  int dataSize = av_get_bytes_per_sample(pCodecCtx->sample_fmt);
+  int ret;
+
+  // send packet to get decode from libavcodec decoder
+  ret = avcodec_send_packet(pCodecCtx, pPacket);
+  if (ret < 0) { FATAL("ASource()::av_send_packet()", -1); }
+
+  // Audio packets can have multiple audio frames in a single packet
+  while (ret >= 0) {
+
+    std::vector<T> sampleBlock;
+
+    ret = avcodec_receive_frame(pCodecCtx, pFrame);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+      if (ret == AVERROR_EOF) { LOG("AVERROR_EOF"); }
+      break;
+    } else if (ret < 0) {
+      FATAL("ASource()::av_receive_frame()", -1);
+    }
+
+    mNumberSamples += pFrame->nb_samples;
+
+    // Write float32 data for the channel
+    for (int i = 0; i < pFrame->nb_samples; i++) {
+      for (int ch = 0; ch < pCodecCtx->channels; ch++) {
+	fwrite(pFrame->data[ch] + (dataSize * i), dataSize, 1, outFile);
+	float sample = *((float *)(pFrame->data[ch] + (dataSize * i)));
+	sampleBlock.push_back(sample);
+      }
+    }
+    av_frame_unref(pFrame); // need?
+    mSampleBlocks.push_back(new SampleBlock<T>(sampleBlock));
+  } // while (ret >= 0)
+}
+
+template <typename T>
 void ASource<T>::PrintInfo() {
   //  int index = 0;
   //  for(auto & blockptr : mSampleBlocks){
@@ -204,7 +167,7 @@ void ASource<T>::PrintInfo() {
   //  }
   LOG("SAMPLING RATE: ", mSamplingRate);
   LOG("NUMBER SAMPLES: ", mNumberSamples);
-  LOG("NUMBER BLOCKS: ", mNumberBlocks);
+  LOG("NUMBER BLOCKS: ", mSampleBlocks.size());
   LOG("BLOCK SIZE: ", mBlockSize);
   LOG("LAST ", mLast);
 }

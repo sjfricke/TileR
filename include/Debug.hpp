@@ -9,6 +9,7 @@
 #include <iostream>
 #include <utility>
 
+// TODO replace std::endl with \n to save from logging flushing
 #define LOG(...) std::cout, __VA_ARGS__, std::endl
 template <typename T>
 std::ostream &operator,(std::ostream &out, const T &t) {
