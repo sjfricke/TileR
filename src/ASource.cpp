@@ -124,6 +124,8 @@ void ASource::decode(AVCodecContext *pCodecCtx, AVPacket *pPacket, AVFrame *pFra
     } else if (ret < 0) {
       FATAL("ASource()::av_receive_frame()", -1);
     }
+    LOG("pts: ", pFrame->pts, "\tpkt_dts: ", pFrame->pkt_dts, "\tpkt_pos: ", pFrame->pkt_pos,
+	"\tpkt_dur: ", pFrame->pkt_duration);
 
     mNumberSamples += pFrame->nb_samples;
 

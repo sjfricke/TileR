@@ -33,8 +33,8 @@ int main(int argc, char *argv[]) {
   bool exitProgram = false;
   int indie = 0;
   std::vector<ASource *> sources;
-  std::string fileName{"./data/video0.mp4"};
-  std::string outFile{"./test.mp4"};
+  std::string fileName{"./data/test_0.mp4"};
+  std::string outFile{".output/test.mp4"};
 
   while (!exitProgram) {
     int input = menuPrint();
@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
             mkdir("./output", 0777);
           }
 
-          AV testAV("./data/video0.mp4");
-          testAV.Stich("output/test.mp4", 10, 50);
+          AV testAV(fileName);
+          testAV.Stich(outFile, 10, 50);
         }
 
         break;
