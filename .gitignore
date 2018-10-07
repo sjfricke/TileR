@@ -15,8 +15,10 @@ CTestTestfile.cmake
 # Data
 data/processed_samples.txt
 
-# C++
+# vscode
+.vscode/
 
+# C++
 bin/*
 
 # Prerequisites
