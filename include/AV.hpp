@@ -21,7 +21,7 @@ extern "C" {
 #include <libavutil/timestamp.h>
 };
 
-av_always_inline char *aav_err2str(int errnum) {
+av_always_inline char* aav_err2str(int errnum) {
   static char str[AV_ERROR_MAX_STRING_SIZE];
   memset(str, 0, sizeof(str));
   return av_make_error_string(str, AV_ERROR_MAX_STRING_SIZE, errnum);
@@ -31,16 +31,11 @@ av_always_inline char *aav_err2str(int errnum) {
 // TODO
 
 // TODO - Not have in global header scope
-typedef struct OutputStream {
-  AVStream *stream;
-
-  /* pts of the next frame that will be generated */
-  int64_t next_pts = 0;
-  int samples_count = 0;
-
-  AVFrame *frame;
-
-} OutputStream;
+struct VFrames {
+  int64_t startFrame;
+  int64_t duration;
+  std::string source;
+};
 
 class AV {
  public:
@@ -49,11 +44,14 @@ class AV {
 
   void PrintAVInfo(void);
   void AddInputSource(std::string fileName);
-  void Stich(std::string outFile, int start, int duration);
+
+  // Video
+  void VStich(std::string outFile, std::vector<VFrames>& vFrames);
+  int VCut(double from_seconds, double end_seconds, const char* in_filename,
+           const char* out_filename);
 
  private:
   std::vector<std::string> mInputFiles;
-  AVFrame *dummyFrame(OutputStream *);
 };
 
 #endif  // TILER_AV_H_

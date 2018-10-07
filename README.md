@@ -31,3 +31,13 @@ make
 ```
 ./bin/TileR
 ```
+
+# Helpful stuff
+
+- Debugging libav `av_log_set_level(AV_LOG_DEBUG);`
+-
+```
+char libErr[256];
+av_strerror(ret, libErr, 256);
+fprintf(stderr, "%s\n", libErr);
+```

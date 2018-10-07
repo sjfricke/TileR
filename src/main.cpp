@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   int indie = 0;
   std::vector<ASource *> sources;
   std::string fileName{"./data/test_0.mp4"};
-  std::string outFile{".output/test.mp4"};
+  std::string outFile{"./output/test.mp4"};
 
   while (!exitProgram) {
     int input = menuPrint();
@@ -67,7 +67,12 @@ int main(int argc, char *argv[]) {
           }
 
           AV testAV(fileName);
-          testAV.Stich(outFile, 10, 50);
+          std::vector<VFrames> vInputQueue;
+          // vInputQueue.push_back({0, 48, "./data/video0.mp4"});
+          vInputQueue.push_back({0, 48, "./data/test_1.mp4"});
+          vInputQueue.push_back({0, 24, "./data/test_0.mp4"});
+          // testAV.VStich(outFile, vInputQueue);
+          testAV.VCut(5.0, 10.0, "./data/video0.mp4", "./output/cut.mp4");
         }
 
         break;
