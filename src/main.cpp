@@ -1,111 +1,56 @@
 #include <sys/stat.h>   // mkdir check
 #include <sys/types.h>  // mkdir
-#include <unistd.h>     // access(2)
 #include <vector>
-#include "ASource.hpp"
-#include "AV.hpp"
-#include "Debug.hpp"
-#include "SampleBlock.hpp"
+#include <string>
+#include "utils.hpp"
+#include "source.hpp"
 
-int menuPrint() {
-  LOG("\n******** Main Menu ********");
-  LOG("\t1) Add new AV Source");
-  LOG("\t2) Add new Song");
-  LOG("\t3) Output merged sources");
-  LOG("\t4) Print AV Source status and info");
-  LOG("\t5) Print Song status and info");
-  LOG("\t6) Suprise me mothur fuker!");
-  LOG("\t69) EXIT");
-  std::cout << "\nEnter Menu: ";
+extern "C" {
+#include "libavcodec/version.h"
+#include "libavformat/version.h"
+#include "libavutil/version.h"
 
-  int input;
-  std::cin >> input;
-  std::cout << std::endl;  // new line
-  return input;
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 }
+
 
 int main(int argc, char *argv[]) {
   LOG("libavcodec V.", LIBAVCODEC_VERSION_MAJOR, ".", LIBAVCODEC_VERSION_MINOR, ".",
       LIBAVCODEC_VERSION_MICRO);
   LOG("libavformat V.", LIBAVFORMAT_VERSION_MAJOR, ".", LIBAVFORMAT_VERSION_MINOR, ".",
       LIBAVFORMAT_VERSION_MICRO);
+  LOG("libavutil V.", LIBAVUTIL_VERSION_MAJOR, ".", LIBAVUTIL_VERSION_MINOR, ".",
+      LIBAVUTIL_VERSION_MICRO);
 
-  bool exitProgram = false;
-  int indie = 0;
-  std::vector<ASource *> sources;
-  std::string fileName{"./data/test_0.mp4"};
-  std::string outFile{"./output/test.mp4"};
+  // By default ffmpeg will not know to look for mp4
+  // avformat_open_input will return Invalid data found from input
+  av_register_all();
+  
+  std::string video_0("./data/video/source_0.mp4");
+  std::string video_1("./data/video/source_1.mp4");
+  uint32_t input_source_size = 2;
 
-  while (!exitProgram) {
-    int input = menuPrint();
-
-    switch (input) {
-      case 1:  // add AV Source
-        while (1) {
-          std::cout << "Enter AV Source path: ";
-          // std::cin >> fileName;
-          if (access(fileName.c_str(), F_OK) == -1) {
-            LOG("... file is fake news, try again");
-          } else {
-            break;
-          }
-        }
-        sources.push_back(new ASource(44100, fileName));
-        break;
-      case 2:  // add Song
-        break;
-      case 3:  // Merge source to output
-
-        std::cout << "Enter output path: ";
-        // std::cin >> outFile;
-
-        {
-          // need to make sure output folder is there
-          struct stat st = {0};
-          if (stat("./output", &st) == -1) {
-            mkdir("./output", 0777);
-          }
-
-          AV testAV(fileName);
-          std::vector<VFrames> vInputQueue;
-          // vInputQueue.push_back({0, 48, "./data/video0.mp4"});
-          vInputQueue.push_back({0, 48, "./data/test_1.mp4"});
-          vInputQueue.push_back({0, 24, "./data/test_0.mp4"});
-          // testAV.VStich(outFile, vInputQueue);
-          testAV.VCut(5.0, 10.0, "./data/video0.mp4", "./output/cut.mp4");
-        }
-
-        break;
-      case 4:  // AV info
-        indie = 0;
-        for (auto &source : sources) {
-          LOG("SOURCE ", indie);
-          indie++;
-          source->PrintInfo();
-        }
-
-        break;
-      case 5:  // Song info
-        break;
-      case 6:  // Suprise
-        LOG("P = 1");
-        LOG("N = NP");
-        LOG("(ﾉﾟ0ﾟ)ﾉ~\n");
-        break;
-      case 69:
-        LOG("Ha, gayyyyyyyyyyyy");
-        exitProgram = true;
-        break;
-      default:
-        LOG("\n... bruh, ", input, " wasn't a fuken option now was it, timing you out a$$hole");
-        sleep(2);
-        LOG("... lets try this again");
-    }
+  Source** input_source = (Source**)malloc(sizeof(Source*) * input_source_size);
+  
+  input_source[0] = new Source(video_0);
+  input_source[1] = new Source(video_1);
+  
+  //string inputVideoPath{"./data/video/"};
+  // std::string inputSongPath{"./data/song/smash_mouth.wav"};
+  std::string out_file{"./output/out.mp4"};
+ 
+	    
+  // need to make sure output folder is there
+  struct stat st = {0};
+  if (stat("./output", &st) == -1) {
+    mkdir("./output", 0777);
   }
 
-  // clean up sources (for if/when we migrate code in future)
-  for (auto &source : sources) {
-    delete source;
+  for (uint32_t i = 0; i < input_source_size; i++) {
+    delete input_source[i];
   }
+  free(input_source);
+  
   return 0;
 }
