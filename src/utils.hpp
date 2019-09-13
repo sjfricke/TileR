@@ -7,6 +7,10 @@
 #include <iostream>
 #include <utility>
 
+extern "C" {
+#include <libavutil/avutil.h>
+};
+
 // TODO replace std::endl with \n to save from logging flushing
 #define LOG(...) std::cout, __VA_ARGS__, std::endl
 template <typename T>
@@ -26,5 +30,15 @@ static std::ostream &operator,(std::ostream &out, std::ostream &(*f)(std::ostrea
     LOG("\n===== FATEL ERROR: ", code, " =====\n", err); \
     exit(code);                                          \
   }
+
+#define CHECK_ERR(ret) \
+  { \
+  if (ret < 0) { \
+  char libErr[256]; \
+  av_strerror(ret, libErr, 256); \
+  fprintf(stderr, "%s:%d\t%s\n", __FILE__, __LINE__, libErr);	\
+  exit(ret);\
+}						\
+}
 
 #endif  // TILER_UTILS_H_

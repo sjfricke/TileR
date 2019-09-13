@@ -15,7 +15,7 @@ class Source {
  private:
   int Decode();
   
-  std::string m_input_file;
+  std::string m_inputFile;
 };
 
 #endif // TILER_SOURCE_H_

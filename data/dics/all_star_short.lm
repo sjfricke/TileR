@@ -1,0 +1,155 @@
+Language model created by QuickLM on Sun Apr  7 20:47:46 EDT 2019
+Copyright (c) 1996-2010 Carnegie Mellon University and Alexander I. Rudnicky
+
+The model is in standard ARPA format, designed by Doug Paul while he was at MITRE.
+
+The code that was used to produce this language model is available in Open Source.
+Please visit http://www.speech.cs.cmu.edu/tools/ for more information
+
+The (fixed) discount mass is 0.5. The backoffs are computed using the ratio method.
+This model based on a corpus of 30 sentences and 33 words
+
+\data\
+ngram 1=33
+ngram 2=61
+ngram 3=38
+
+\1-grams:
+-0.8151 </s> -0.3010
+-0.8151 <s> -0.2183
+-2.2923 A -0.2988
+-2.2923 AIN'T -0.2289
+-2.2923 ALL-STAR -0.2289
+-2.2923 AN -0.2289
+-2.2923 GAME -0.2966
+-1.8151 GET -0.2156
+-2.2923 GO -0.2289
+-2.2923 GONNA -0.2289
+-2.2923 HEY -0.2988
+-2.2923 I -0.2289
+-2.2923 IN -0.2921
+-2.2923 IS -0.2289
+-1.9912 ME -0.2289
+-2.2923 NOW -0.2289
+-1.9912 ON -0.2289
+-2.2923 ONCE -0.2289
+-2.2923 PAID -0.2289
+-2.2923 PLAY -0.2289
+-2.2923 ROCK -0.2289
+-2.2923 ROLL -0.2289
+-2.2923 SHARPEST -0.2289
+-2.2923 SHED -0.2289
+-2.2923 SHOW -0.2289
+-2.2923 SOMEBODY -0.2289
+-2.2923 STAR -0.2289
+-1.6902 THE -0.2263
+-2.2923 TOLD -0.2966
+-2.2923 TOOL -0.2289
+-2.2923 WORLD -0.2289
+-2.2923 YOU'RE -0.2289
+-2.2923 YOUR -0.2289
+
+\2-grams:
+-1.7782 <s> A 0.0000
+-1.7782 <s> AIN'T 0.0000
+-1.7782 <s> ALL-STAR 0.0000
+-1.7782 <s> AN 0.0000
+-1.7782 <s> GAME 0.0000
+-1.3010 <s> GET 0.0000
+-1.7782 <s> GO 0.0000
+-1.7782 <s> GONNA 0.0000
+-1.7782 <s> HEY 0.0000
+-1.7782 <s> I 0.0000
+-1.7782 <s> IN 0.0000
+-1.7782 <s> IS 0.0000
+-1.7782 <s> ME 0.0000
+-1.7782 <s> ON 0.0000
+-1.7782 <s> ONCE 0.0000
+-1.7782 <s> PAID 0.0000
+-1.7782 <s> PLAY 0.0000
+-1.7782 <s> ROLL 0.0000
+-1.7782 <s> SHARPEST 0.0000
+-1.7782 <s> SHED 0.0000
+-1.7782 <s> SHOW 0.0000
+-1.7782 <s> SOMEBODY 0.0000
+-1.7782 <s> STAR 0.0000
+-1.4771 <s> THE 0.0000
+-1.7782 <s> TOLD 0.0000
+-1.7782 <s> TOOL 0.0000
+-1.7782 <s> YOU'RE 0.0000
+-0.3010 A ROCK 0.0000
+-0.3010 AIN'T </s> -0.3010
+-0.3010 ALL-STAR </s> -0.3010
+-0.3010 AN </s> -0.3010
+-0.3010 GAME ON 0.0000
+-0.7782 GET </s> -0.3010
+-0.7782 GET THE -0.0969
+-0.7782 GET YOUR 0.0000
+-0.3010 GO </s> -0.3010
+-0.3010 GONNA </s> -0.3010
+-0.3010 HEY NOW 0.0000
+-0.3010 I </s> -0.3010
+-0.3010 IN THE -0.0969
+-0.3010 IS </s> -0.3010
+-0.3010 ME </s> -0.3010
+-0.3010 NOW </s> -0.3010
+-0.3010 ON </s> -0.3010
+-0.3010 ONCE </s> -0.3010
+-0.3010 PAID </s> -0.3010
+-0.3010 PLAY </s> -0.3010
+-0.3010 ROCK </s> -0.3010
+-0.3010 ROLL </s> -0.3010
+-0.3010 SHARPEST </s> -0.3010
+-0.3010 SHED </s> -0.3010
+-0.3010 SHOW </s> -0.3010
+-0.3010 SOMEBODY </s> -0.3010
+-0.3010 STAR </s> -0.3010
+-0.4260 THE </s> -0.3010
+-0.9031 THE WORLD 0.0000
+-0.3010 TOLD ME 0.0000
+-0.3010 TOOL </s> -0.3010
+-0.3010 WORLD </s> -0.3010
+-0.3010 YOU'RE </s> -0.3010
+-0.3010 YOUR </s> -0.3010
+
+\3-grams:
+-0.3010 <s> A ROCK
+-0.3010 <s> AIN'T </s>
+-0.3010 <s> ALL-STAR </s>
+-0.3010 <s> AN </s>
+-0.3010 <s> GAME ON
+-0.7782 <s> GET </s>
+-0.7782 <s> GET THE
+-0.7782 <s> GET YOUR
+-0.3010 <s> GO </s>
+-0.3010 <s> GONNA </s>
+-0.3010 <s> HEY NOW
+-0.3010 <s> I </s>
+-0.3010 <s> IN THE
+-0.3010 <s> IS </s>
+-0.3010 <s> ME </s>
+-0.3010 <s> ON </s>
+-0.3010 <s> ONCE </s>
+-0.3010 <s> PAID </s>
+-0.3010 <s> PLAY </s>
+-0.3010 <s> ROLL </s>
+-0.3010 <s> SHARPEST </s>
+-0.3010 <s> SHED </s>
+-0.3010 <s> SHOW </s>
+-0.3010 <s> SOMEBODY </s>
+-0.3010 <s> STAR </s>
+-0.6021 <s> THE </s>
+-0.6021 <s> THE WORLD
+-0.3010 <s> TOLD ME
+-0.3010 <s> TOOL </s>
+-0.3010 <s> YOU'RE </s>
+-0.3010 A ROCK </s>
+-0.3010 GAME ON </s>
+-0.3010 GET THE </s>
+-0.3010 GET YOUR </s>
+-0.3010 HEY NOW </s>
+-0.3010 IN THE </s>
+-0.3010 THE WORLD </s>
+-0.3010 TOLD ME </s>
+
+\end\
