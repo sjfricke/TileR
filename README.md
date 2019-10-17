@@ -1,5 +1,7 @@
 # TileR
 
+> Project is currently abandoned
+
 [Style Guide](STYLE.md)
 
 Clang format to style code
